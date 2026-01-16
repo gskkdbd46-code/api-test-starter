@@ -1,3 +1,6 @@
+![tests](https://github.com/gskkdbd46-code/api-test-starter/actions/workflows/tests.yml/badge.svg)
+
+
 # api-test-starter (E-commerce API Test Demo)
 
 一个最小可交付的接口自动化项目：
