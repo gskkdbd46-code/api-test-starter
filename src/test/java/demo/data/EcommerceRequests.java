@@ -27,4 +27,12 @@ public final class EcommerceRequests {
         if (s == null) return "";
         return s.replace("\\", "\\\\").replace("\"", "\\\"");
     }
+    public static String addToCartJson(int productId, int qty) {
+        return "{\"productId\":" + productId + ",\"qty\":" + qty + "}";
+    }
+
+    public static String createOrderJson(String cartId) {
+        return "{\"cartId\":\"" + cartId + "\"}";
+    }
+
 }

@@ -56,8 +56,9 @@ public class EcommerceApiTest extends TestBase {
         demo.stubs.ScenarioPacks.unauthorizedOnly();
 
         var client = new demo.client.EcommerceClient(wm.getHttpBaseUrl());
-        assert401_noAuth(wm.getHttpBaseUrl(), "GET /products", client.getProductsNoAuth());
+        assert401_noAuth("GET /products", client.getProductsNoAuth());
     }
+
 
 
     @Test
@@ -86,11 +87,12 @@ public class EcommerceApiTest extends TestBase {
     @Test
     @Tag("regression")
     void addToCart_should401_withoutToken(WireMockRuntimeInfo wm) {
-        EcommerceStubs.register(EcommerceStubs.Scenario.UNAUTHORIZED);
+        demo.stubs.ScenarioPacks.unauthorizedOnly();
 
-        var client = new EcommerceClient(wm.getHttpBaseUrl());
-        assertUnauthorized(client.addToCartNoAuth(EcommerceRequests.addToCart(101, 1)));
+        var client = new demo.client.EcommerceClient(wm.getHttpBaseUrl());
+        assert401_noAuth("POST /cart/items", client.addToCartNoAuth(demo.data.EcommerceRequests.addToCartJson(101, 1)));
     }
+
 
     @Test
     @Tag("regression")
@@ -121,11 +123,12 @@ public class EcommerceApiTest extends TestBase {
     @Test
     @Tag("regression")
     void createOrder_should401_withoutToken(WireMockRuntimeInfo wm) {
-        EcommerceStubs.register(EcommerceStubs.Scenario.UNAUTHORIZED);
+        demo.stubs.ScenarioPacks.unauthorizedOnly();
 
-        var client = new EcommerceClient(wm.getHttpBaseUrl());
-        assertUnauthorized(client.createOrderNoAuth(EcommerceRequests.createOrder("c-1")));
+        var client = new demo.client.EcommerceClient(wm.getHttpBaseUrl());
+        assert401_noAuth("POST /orders", client.createOrderNoAuth(demo.data.EcommerceRequests.createOrderJson("c-1")));
     }
+
 
     @Test
     @Tag("regression")
@@ -144,13 +147,16 @@ public class EcommerceApiTest extends TestBase {
     @Test
     @Tag("regression")
     void getOrder_should401_withoutToken(WireMockRuntimeInfo wm) {
-        EcommerceStubs.register(EcommerceStubs.Scenario.UNAUTHORIZED);
+        demo.stubs.ScenarioPacks.unauthorizedOnly();
 
-        var client = new EcommerceClient(wm.getHttpBaseUrl());
-        assertUnauthorized(client.getOrderNoAuth("o-9001"));
+        var client = new demo.client.EcommerceClient(wm.getHttpBaseUrl());
+        assert401_noAuth("GET /orders/{id}", client.getOrderNoAuth("o-9001"));
     }
-    private void assert401_noAuth(String baseUrl, String name, io.restassured.response.Response resp) {
+
+    private void assert401_noAuth(String name, io.restassured.response.Response resp) {
+        // 这个 helper 只用于“明确不带 token 的用例”
         assertUnauthorized(resp);
     }
+
 
 }
