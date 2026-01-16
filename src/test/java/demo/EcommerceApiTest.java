@@ -1,15 +1,15 @@
 package demo;
 
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import demo.client.EcommerceClient;
+import demo.data.EcommerceRequests;
 import demo.stubs.EcommerceStubs;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
-import com.github.tomakehurst.wiremock.junit5.WireMockTest;
-
-import static org.hamcrest.Matchers.*;
+import static demo.assertions.ApiAssertions.*;
 
 @WireMockTest
 public class EcommerceApiTest extends TestBase {
@@ -24,175 +24,104 @@ public class EcommerceApiTest extends TestBase {
     void smoke_happyPath_login_products_addCart_createOrder_getOrder(WireMockRuntimeInfo wm) {
         var client = new EcommerceClient(wm.getHttpBaseUrl());
 
-        String token = client.login("u", "p");
+        String token = extractToken(client.login(EcommerceRequests.login("u", "p")));
         client.setToken(token);
 
-        int firstProductId =
-                client.getProducts()
-                        .then()
-                        .statusCode(200)
-                        .body("size()", greaterThanOrEqualTo(1))
-                        .extract()
-                        .path("[0].id");
+        int firstProductId = extractFirstProductId(client.getProducts());
 
-        client.addToCart(firstProductId, 1)
-                .then()
-                .statusCode(200)
-                .body("cartId", equalTo("c-1"))
-                .body("itemCount", equalTo(1));
+        assertAddToCartOk(client.addToCart(EcommerceRequests.addToCart(firstProductId, 1)));
 
-        String orderId =
-                client.createOrder("c-1")
-                        .then()
-                        .statusCode(200)
-                        .body("status", equalTo("CREATED"))
-                        .body("amount", equalTo(199))
-                        .extract()
-                        .path("orderId");
+        String orderId = extractOrderIdCreated(client.createOrder(EcommerceRequests.createOrder("c-1")));
 
-        client.getOrder(orderId)
-                .then()
-                .statusCode(200)
-                .body("orderId", equalTo("o-9001"))
-                .body("status", equalTo("CREATED"))
-                .body("amount", equalTo(199));
+        assertOrderOk(client.getOrder(orderId), "o-9001");
     }
 
     @Test
     @Tag("regression")
     void login_should400_whenMissingPassword(WireMockRuntimeInfo wm) {
-        // 这条不走 client.login，因为它是“异常输入”用例，直接构造请求更清晰
-        new EcommerceClient(wm.getHttpBaseUrl()); // 只是强调 client 可用，不是必须
-
-        io.restassured.RestAssured.given()
-                .baseUri(wm.getHttpBaseUrl())
-                .contentType("application/json")
-                .body("{\"username\":\"u\"}")
-        .when()
-                .post("/auth/login")
-        .then()
-                .statusCode(400)
-                .body("error", equalTo("bad_request"));
+        var client = new EcommerceClient(wm.getHttpBaseUrl());
+        assertBadRequest(client.login(EcommerceRequests.loginMissingPassword("u")));
     }
 
     @Test
     @Tag("regression")
     void login_should400_whenMissingUsername(WireMockRuntimeInfo wm) {
-        io.restassured.RestAssured.given()
-                .baseUri(wm.getHttpBaseUrl())
-                .contentType("application/json")
-                .body("{\"password\":\"p\"}")
-        .when()
-                .post("/auth/login")
-        .then()
-                .statusCode(400)
-                .body("error", equalTo("bad_request"));
+        var client = new EcommerceClient(wm.getHttpBaseUrl());
+        assertBadRequest(client.login(EcommerceRequests.loginMissingUsername("p")));
     }
 
     @Test
     @Tag("regression")
     void products_should401_withoutToken(WireMockRuntimeInfo wm) {
         var client = new EcommerceClient(wm.getHttpBaseUrl());
-
-        client.getProductsRawNoAuth()
-                .then()
-                .statusCode(401)
-                .body("error", equalTo("unauthorized"));
+        assertUnauthorized(client.getProductsNoAuth());
     }
 
     @Test
     @Tag("regression")
     void products_should401_whenTokenExpired(WireMockRuntimeInfo wm) {
         var client = new EcommerceClient(wm.getHttpBaseUrl());
-
-        client.getProductsWithToken(EcommerceStubs.EXPIRED_TOKEN)
-                .then()
-                .statusCode(401)
-                .body("error", equalTo("token_expired"));
+        assertTokenExpired(client.getProductsWithToken(EcommerceStubs.EXPIRED_TOKEN));
     }
 
     @Test
     @Tag("regression")
     void addToCart_should400_whenQtyInvalid(WireMockRuntimeInfo wm) {
         var client = new EcommerceClient(wm.getHttpBaseUrl());
-        String token = client.login("u", "p");
+        String token = extractToken(client.login(EcommerceRequests.login("u", "p")));
         client.setToken(token);
 
-        client.addToCart(101, 0)
-                .then()
-                .statusCode(400)
-                .body("error", equalTo("bad_request"));
+        assertBadRequest(client.addToCart(EcommerceRequests.addToCart(101, 0)));
     }
 
     @Test
     @Tag("regression")
     void addToCart_should401_withoutToken(WireMockRuntimeInfo wm) {
         var client = new EcommerceClient(wm.getHttpBaseUrl());
-
-        client.addToCartNoAuth(101, 1)
-                .then()
-                .statusCode(401)
-                .body("error", equalTo("unauthorized"));
+        assertUnauthorized(client.addToCartNoAuth(EcommerceRequests.addToCart(101, 1)));
     }
 
     @Test
     @Tag("regression")
     void createOrder_should409_whenOutOfStock(WireMockRuntimeInfo wm) {
         var client = new EcommerceClient(wm.getHttpBaseUrl());
-        String token = client.login("u", "p");
+        String token = extractToken(client.login(EcommerceRequests.login("u", "p")));
         client.setToken(token);
 
-        client.createOrder("c-oos")
-                .then()
-                .statusCode(409)
-                .body("error", equalTo("out_of_stock"));
+        assertConflictOutOfStock(client.createOrder(EcommerceRequests.createOrder("c-oos")));
     }
 
     @Test
     @Tag("regression")
     void createOrder_should409_whenDuplicateSubmit(WireMockRuntimeInfo wm) {
         var client = new EcommerceClient(wm.getHttpBaseUrl());
-        String token = client.login("u", "p");
+        String token = extractToken(client.login(EcommerceRequests.login("u", "p")));
         client.setToken(token);
 
-        client.createOrder("c-dup")
-                .then()
-                .statusCode(409)
-                .body("error", equalTo("duplicate_submit"));
+        assertConflictDuplicate(client.createOrder(EcommerceRequests.createOrder("c-dup")));
     }
 
     @Test
     @Tag("regression")
     void createOrder_should401_withoutToken(WireMockRuntimeInfo wm) {
         var client = new EcommerceClient(wm.getHttpBaseUrl());
-
-        client.createOrderNoAuth("c-1")
-                .then()
-                .statusCode(401)
-                .body("error", equalTo("unauthorized"));
+        assertUnauthorized(client.createOrderNoAuth(EcommerceRequests.createOrder("c-1")));
     }
 
     @Test
     @Tag("regression")
     void getOrder_should404_whenNotFound(WireMockRuntimeInfo wm) {
         var client = new EcommerceClient(wm.getHttpBaseUrl());
-        String token = client.login("u", "p");
+        String token = extractToken(client.login(EcommerceRequests.login("u", "p")));
         client.setToken(token);
 
-        client.getOrder("o-404")
-                .then()
-                .statusCode(404)
-                .body("error", equalTo("not_found"));
+        assertNotFound(client.getOrder("o-404"));
     }
 
     @Test
     @Tag("regression")
     void getOrder_should401_withoutToken(WireMockRuntimeInfo wm) {
         var client = new EcommerceClient(wm.getHttpBaseUrl());
-
-        client.getOrderNoAuth("o-9001")
-                .then()
-                .statusCode(401)
-                .body("error", equalTo("unauthorized"));
+        assertUnauthorized(client.getOrderNoAuth("o-9001"));
     }
 }

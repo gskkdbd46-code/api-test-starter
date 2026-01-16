@@ -1,6 +1,5 @@
 package demo.client;
 
-import io.restassured.filter.log.LogDetail;
 import io.restassured.response.Response;
 
 import static io.restassured.RestAssured.given;
@@ -18,17 +17,13 @@ public class EcommerceClient {
         return this;
     }
 
-    public String login(String username, String password) {
+    public Response login(String bodyJson) {
         return given()
                 .baseUri(baseUrl)
                 .contentType("application/json")
-                .body("{\"username\":\"" + username + "\",\"password\":\"" + password + "\"}")
+                .body(bodyJson)
         .when()
-                .post("/auth/login")
-        .then()
-                .statusCode(200)
-                .extract()
-                .path("token");
+                .post("/auth/login");
     }
 
     public Response getProducts() {
@@ -39,7 +34,7 @@ public class EcommerceClient {
                 .get("/products");
     }
 
-    public Response getProductsRawNoAuth() {
+    public Response getProductsNoAuth() {
         return given()
                 .baseUri(baseUrl)
         .when()
@@ -54,40 +49,40 @@ public class EcommerceClient {
                 .get("/products");
     }
 
-    public Response addToCart(int productId, int qty) {
+    public Response addToCart(String bodyJson) {
         return given()
                 .baseUri(baseUrl)
                 .header("Authorization", bearer())
                 .contentType("application/json")
-                .body("{\"productId\":" + productId + ",\"qty\":" + qty + "}")
+                .body(bodyJson)
         .when()
                 .post("/cart/items");
     }
 
-    public Response addToCartNoAuth(int productId, int qty) {
+    public Response addToCartNoAuth(String bodyJson) {
         return given()
                 .baseUri(baseUrl)
                 .contentType("application/json")
-                .body("{\"productId\":" + productId + ",\"qty\":" + qty + "}")
+                .body(bodyJson)
         .when()
                 .post("/cart/items");
     }
 
-    public Response createOrder(String cartId) {
+    public Response createOrder(String bodyJson) {
         return given()
                 .baseUri(baseUrl)
                 .header("Authorization", bearer())
                 .contentType("application/json")
-                .body("{\"cartId\":\"" + cartId + "\"}")
+                .body(bodyJson)
         .when()
                 .post("/orders");
     }
 
-    public Response createOrderNoAuth(String cartId) {
+    public Response createOrderNoAuth(String bodyJson) {
         return given()
                 .baseUri(baseUrl)
                 .contentType("application/json")
-                .body("{\"cartId\":\"" + cartId + "\"}")
+                .body(bodyJson)
         .when()
                 .post("/orders");
     }
@@ -109,7 +104,6 @@ public class EcommerceClient {
 
     private String bearer() {
         if (token == null || token.isBlank()) {
-            // 让错误尽早暴露：你忘记 setToken 会直接抛异常
             throw new IllegalStateException("token is not set. Call client.setToken(token) first.");
         }
         return "Bearer " + token;
