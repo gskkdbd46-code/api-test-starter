@@ -25,7 +25,7 @@ public final class ApiAssertions {
 
     public static void assertUnauthorized(Response resp) {
         resp.then()
-                .statusCode(999)
+                .statusCode(401)
                 .body("error", equalTo("unauthorized"));
     }
 
