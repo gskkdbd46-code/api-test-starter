@@ -24,3 +24,32 @@
 全部测试：
 ```bash
 mvn test
+```
+
+
+
+## Test Suite Map
+
+### Tags
+- `smoke`: happy path 冒烟链路（登录 -> 查商品 -> 加购 -> 下单 -> 查单）
+- `regression`: 规则/异常回归（401/400/409/404 等）
+
+### Coverage
+**Smoke**
+- POST `/auth/login` -> 200
+- GET `/products` -> 200
+- POST `/cart/items` -> 200
+- POST `/orders` -> 200
+- GET `/orders/{id}` -> 200
+
+**Regression**
+- Unauthorized (401): 访问需要鉴权的接口但不带 token
+- Validation (400): 请求参数非法（如 qty=0）
+- Conflict (409): 业务冲突（如 out-of-stock / duplicate submit）
+- Not Found (404): 查询不存在订单
+
+### Run Locally
+```bash
+mvn test
+mvn test -DjunitTags=smoke
+mvn test -DjunitTags=regression
