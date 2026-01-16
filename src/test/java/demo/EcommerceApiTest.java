@@ -5,7 +5,6 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import demo.client.EcommerceClient;
 import demo.data.EcommerceRequests;
 import demo.stubs.EcommerceStubs;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -14,31 +13,28 @@ import static demo.assertions.ApiAssertions.*;
 @WireMockTest
 public class EcommerceApiTest extends TestBase {
 
-    @BeforeEach
-    void setupStubs(WireMockRuntimeInfo wm) {
-        EcommerceStubs.registerAll();
-    }
-
     @Test
     @Tag("smoke")
     void smoke_happyPath_login_products_addCart_createOrder_getOrder(WireMockRuntimeInfo wm) {
+        EcommerceStubs.register(EcommerceStubs.Scenario.HAPPY_PATH);
+
         var client = new EcommerceClient(wm.getHttpBaseUrl());
 
         String token = extractToken(client.login(EcommerceRequests.login("u", "p")));
         client.setToken(token);
 
         int firstProductId = extractFirstProductId(client.getProducts());
-
         assertAddToCartOk(client.addToCart(EcommerceRequests.addToCart(firstProductId, 1)));
 
         String orderId = extractOrderIdCreated(client.createOrder(EcommerceRequests.createOrder("c-1")));
-
-        assertOrderOk(client.getOrder(orderId), "o-9001");
+        assertOrderOk(client.getOrder(orderId), orderId);
     }
 
     @Test
     @Tag("regression")
     void login_should400_whenMissingPassword(WireMockRuntimeInfo wm) {
+        EcommerceStubs.register(EcommerceStubs.Scenario.VALIDATION);
+
         var client = new EcommerceClient(wm.getHttpBaseUrl());
         assertBadRequest(client.login(EcommerceRequests.loginMissingPassword("u")));
     }
@@ -46,6 +42,8 @@ public class EcommerceApiTest extends TestBase {
     @Test
     @Tag("regression")
     void login_should400_whenMissingUsername(WireMockRuntimeInfo wm) {
+        EcommerceStubs.register(EcommerceStubs.Scenario.VALIDATION);
+
         var client = new EcommerceClient(wm.getHttpBaseUrl());
         assertBadRequest(client.login(EcommerceRequests.loginMissingUsername("p")));
     }
@@ -53,6 +51,8 @@ public class EcommerceApiTest extends TestBase {
     @Test
     @Tag("regression")
     void products_should401_withoutToken(WireMockRuntimeInfo wm) {
+        EcommerceStubs.register(EcommerceStubs.Scenario.UNAUTHORIZED);
+
         var client = new EcommerceClient(wm.getHttpBaseUrl());
         assertUnauthorized(client.getProductsNoAuth());
     }
@@ -60,6 +60,8 @@ public class EcommerceApiTest extends TestBase {
     @Test
     @Tag("regression")
     void products_should401_whenTokenExpired(WireMockRuntimeInfo wm) {
+        EcommerceStubs.register(EcommerceStubs.Scenario.TOKEN_EXPIRED);
+
         var client = new EcommerceClient(wm.getHttpBaseUrl());
         assertTokenExpired(client.getProductsWithToken(EcommerceStubs.EXPIRED_TOKEN));
     }
@@ -67,6 +69,8 @@ public class EcommerceApiTest extends TestBase {
     @Test
     @Tag("regression")
     void addToCart_should400_whenQtyInvalid(WireMockRuntimeInfo wm) {
+        EcommerceStubs.register(EcommerceStubs.Scenario.VALIDATION);
+
         var client = new EcommerceClient(wm.getHttpBaseUrl());
         String token = extractToken(client.login(EcommerceRequests.login("u", "p")));
         client.setToken(token);
@@ -77,6 +81,8 @@ public class EcommerceApiTest extends TestBase {
     @Test
     @Tag("regression")
     void addToCart_should401_withoutToken(WireMockRuntimeInfo wm) {
+        EcommerceStubs.register(EcommerceStubs.Scenario.UNAUTHORIZED);
+
         var client = new EcommerceClient(wm.getHttpBaseUrl());
         assertUnauthorized(client.addToCartNoAuth(EcommerceRequests.addToCart(101, 1)));
     }
@@ -84,6 +90,8 @@ public class EcommerceApiTest extends TestBase {
     @Test
     @Tag("regression")
     void createOrder_should409_whenOutOfStock(WireMockRuntimeInfo wm) {
+        EcommerceStubs.register(EcommerceStubs.Scenario.CONFLICT);
+
         var client = new EcommerceClient(wm.getHttpBaseUrl());
         String token = extractToken(client.login(EcommerceRequests.login("u", "p")));
         client.setToken(token);
@@ -94,6 +102,8 @@ public class EcommerceApiTest extends TestBase {
     @Test
     @Tag("regression")
     void createOrder_should409_whenDuplicateSubmit(WireMockRuntimeInfo wm) {
+        EcommerceStubs.register(EcommerceStubs.Scenario.CONFLICT);
+
         var client = new EcommerceClient(wm.getHttpBaseUrl());
         String token = extractToken(client.login(EcommerceRequests.login("u", "p")));
         client.setToken(token);
@@ -104,6 +114,8 @@ public class EcommerceApiTest extends TestBase {
     @Test
     @Tag("regression")
     void createOrder_should401_withoutToken(WireMockRuntimeInfo wm) {
+        EcommerceStubs.register(EcommerceStubs.Scenario.UNAUTHORIZED);
+
         var client = new EcommerceClient(wm.getHttpBaseUrl());
         assertUnauthorized(client.createOrderNoAuth(EcommerceRequests.createOrder("c-1")));
     }
@@ -111,6 +123,8 @@ public class EcommerceApiTest extends TestBase {
     @Test
     @Tag("regression")
     void getOrder_should404_whenNotFound(WireMockRuntimeInfo wm) {
+        EcommerceStubs.register(EcommerceStubs.Scenario.NOT_FOUND);
+
         var client = new EcommerceClient(wm.getHttpBaseUrl());
         String token = extractToken(client.login(EcommerceRequests.login("u", "p")));
         client.setToken(token);
@@ -121,6 +135,8 @@ public class EcommerceApiTest extends TestBase {
     @Test
     @Tag("regression")
     void getOrder_should401_withoutToken(WireMockRuntimeInfo wm) {
+        EcommerceStubs.register(EcommerceStubs.Scenario.UNAUTHORIZED);
+
         var client = new EcommerceClient(wm.getHttpBaseUrl());
         assertUnauthorized(client.getOrderNoAuth("o-9001"));
     }
