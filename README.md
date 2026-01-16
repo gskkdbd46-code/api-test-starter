@@ -1,4 +1,5 @@
-![tests](https://github.com/gskkdbd46-code/api-test-starter/actions/workflows/tests.yml/badge.svg)
+[![tests](https://github.com/gskkdbd46-code/api-test-starter/actions/workflows/tests.yml/badge.svg)](https://github.com/gskkdbd46-code/api-test-starter/actions/workflows/tests.yml)
+
 
 
 # api-test-starter (E-commerce API Test Demo)
